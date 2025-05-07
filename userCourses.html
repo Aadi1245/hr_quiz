@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Courses</title>
+  <style>
+   body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #ece9e6, #ffffff);
+      padding: 40px;
+      margin: 0;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .course {
+      background-color: #fff;
+      border-left: 5px solid #007bff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s;
+    }
+
+    .course:hover {
+      transform: translateY(-3px);
+    }
+
+    .course h4 {
+      margin: 0 0 10px 0;
+      color: #007bff;
+    }
+
+    .course p {
+      margin: 4px 0;
+      color: #555;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .back-btn {
+      display: inline-block;
+      margin: 0 auto 30px auto;
+      padding: 10px 20px;
+      background: #007BFF;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .back-btn:hover {
+      background: #0056b3;
+      transform: scale(1.03);
+    }
+
+    /* #courses {
+      text-align: center;
+    } */
+  </style>
+</head>
+<body>
+  <h2>User Enrolled Courses</h2>
+  <div id="courses">Loading...</div>
+
+  <script>
+    async function fetchUserCourses(userId) {
+      //http://localhost:8080/
+      const url = 'http://academy.itgeeksin.com/webservice/rest/server.php';
+      const formData = new URLSearchParams();
+      formData.append('wstoken', '547525445a4397693a6a07f759cd34b1');
+      formData.append('wsfunction', 'core_enrol_get_users_courses');
+      formData.append('moodlewsrestformat', 'json');
+      formData.append('userid', userId);
+
+      const coursesContainer = document.getElementById('courses');
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+        const data = await response.json();
+
+        if (data.length === 0) {
+          coursesContainer.innerHTML = '<p>No enrolled courses found for this user.</p>';
+          return;
+        }
+
+        coursesContainer.innerHTML = '';
+        data.forEach(course => {
+          const div = document.createElement('div');
+          div.className = 'course';
+          div.innerHTML = `
+          
+            <a href="quizzes.html?userid=${userId}&courseid=${course.id}&userName=${userName}" style="text-decoration:none; color:inherit;">
+            <h4>${course.fullname}</h4>
+            <p><strong>Short Name:</strong> ${course.shortname}</p>
+            <p><strong>Course ID:</strong> ${course.id}</p>
+            <!-- Placeholder for future quiz attempt fetch -->
+            <p style="color:gray;"><em>Quiz attempts coming soon...</em></p>
+          `;
+          coursesContainer.appendChild(div);
+        });
+
+      } catch (error) {
+        console.error('Fetch error:', error);
+        coursesContainer.innerHTML = '<p class="error">Error fetching courses.</p>';
+      }
+    }
+
+    // Parse userId from URL and call API
+    const params = new URLSearchParams(window.location.search);
+    const userName = params.get('userName');
+    const userId = params.get('userId');
+    if (userId) {
+      fetchUserCourses(userId);
+    } else {
+      document.getElementById('courses').innerHTML = '<p class="error">No user ID provided.</p>';
+    }
+  </script>
+</body>
+</html>

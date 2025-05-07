@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Course Quizzes</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #ece9e6, #ffffff);
+      padding: 40px;
+      margin: 0;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .quiz {
+      background-color: #fff;
+      border-left: 5px solid #28a745;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .quiz:hover {
+      transform: translateY(-3px);
+    }
+
+    .quiz strong {
+      font-size: 16px;
+      color: #28a745;
+    }
+
+    .attempts {
+      margin-top: 10px;
+      padding-left: 15px;
+    }
+
+    .attempts a {
+      text-decoration: none;
+      color: #333;
+    }
+
+    .attempts p {
+      margin: 6px 0;
+      padding: 8px 12px;
+      background: #f7f7f7;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .attempts p:hover {
+      background: #e0f0df;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>Course Quizzes</h2>
+  <div id="quizzes">Loading...</div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('userid');
+    const courseId = params.get('courseid');
+    const userName = params.get('userName');
+
+
+
+    async function fetchQuizzes() {
+      //http://localhost:8080/
+      const url = 'http://academy.itgeeksin.com/webservice/rest/server.php';
+      const formData = new URLSearchParams();
+      formData.append('wstoken', '547525445a4397693a6a07f759cd34b1');
+      formData.append('wsfunction', 'mod_quiz_get_quizzes_by_courses');
+      formData.append('moodlewsrestformat', 'json');
+      formData.append('courseids[0]', courseId);
+
+      const quizContainer = document.getElementById('quizzes');
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Error fetching quizzes');
+
+        const data = await response.json();
+        if (!data.quizzes || data.quizzes.length === 0) {
+          quizContainer.innerHTML = '<p>No quizzes found for this course.</p>';
+          return;
+        }
+
+        quizContainer.innerHTML = '';
+        data.quizzes.forEach(quiz => {
+          const div = document.createElement('div');
+          div.className = 'quiz';
+          div.innerHTML = `
+            <strong>${quiz.name}</strong>
+            <div id="attempts-${quiz.id}" class="attempts"></div>
+          `;
+          div.onclick = () => fetchQuizAttempts(quiz.id, userId);
+          quizContainer.appendChild(div);
+        });
+
+      } catch (error) {
+        console.error(error);
+        quizContainer.innerHTML = '<p class="error">Failed to load quizzes.</p>';
+      }
+    }
+
+    async function fetchQuizAttempts(quizId, userId) {
+      //http://localhost:8080/
+      const url = 'http://academy.itgeeksin.com/webservice/rest/server.php';
+      const formData = new URLSearchParams();
+      formData.append('wstoken', 'fd6bf42cd99da3f0b8d52ab3767ecc26');
+      formData.append('wsfunction', 'mod_quiz_get_user_attempts');
+      formData.append('moodlewsrestformat', 'json');
+      formData.append('quizid', quizId);
+      formData.append('userid', userId);
+
+      const attemptsContainer = document.getElementById(`attempts-${quizId}`);
+      attemptsContainer.innerHTML = 'Loading attempts...';
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch quiz attempts');
+
+        const data = await response.json();
+        if (!data.attempts || data.attempts.length === 0) {
+          attemptsContainer.innerHTML = '<p>No attempts found for this quiz.</p>';
+          return;
+        }
+
+        attemptsContainer.innerHTML = data.attempts.map(a => `
+        <a href="mycode.html?attemptId=${a.id}&userName=${userName}" style="text-decoration:none; color:inherit;">
+          <div>
+            <p><strong>Attempt #${a.attempt}</strong> - State: ${a.state}, Score: ${a.sumgrades ?? 'N/A'}</p>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error(error);
+        attemptsContainer.innerHTML = '<p class="error">Error loading attempts.</p>';
+      }
+    }
+
+    if (courseId && userId) {
+      fetchQuizzes();
+    } else {
+      document.getElementById('quizzes').innerHTML = '<p class="error">Missing user or course ID.</p>';
+    }
+  </script>
+</body>
+</html>

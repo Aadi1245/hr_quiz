@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Moodle User Fetch</title>
+  <style>
+   body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #ece9e6, #ffffff);
+      padding: 40px;
+      margin: 0;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .button {
+      display: block;
+      margin: 0 auto 30px auto;
+      padding: 12px 24px;
+      background-color: #007bff;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+      transform: scale(1.03);
+    }
+
+    .user {
+      background-color: #fff;
+      border-left: 5px solid #007bff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s;
+    }
+
+    .user:hover {
+      transform: translateY(-3px);
+    }
+
+    .user h4 {
+      margin: 0 0 10px 0;
+      color: #007bff;
+    }
+
+    .user p {
+      margin: 4px 0;
+      color: #555;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Fetch All Moodle Users</h2>
+  <button onclick="verifyPasswordAndFetch()" class="button">Get Users</button>
+  <div id="results"></div>
+
+  <script>
+
+function verifyPasswordAndFetch() {
+      const correctPassword = "Itgeeks@123";
+      const input = prompt("Enter password to access users list:");
+      if (input === correctPassword) {
+        fetchAllUsers();
+      } else {
+        alert("Incorrect password. Access denied.");
+      }
+    }
+
+
+
+    async function fetchAllUsers() {
+      //http://localhost:8080/
+      const url = 'http://academy.itgeeksin.com/webservice/rest/server.php';
+      const formData = new URLSearchParams();
+      formData.append('wstoken', '547525445a4397693a6a07f759cd34b1');
+      formData.append('wsfunction', 'core_user_get_users');
+      formData.append('moodlewsrestformat', 'json');
+      formData.append('criteria[0][key]', 'email');
+      formData.append('criteria[0][value]', '%');
+
+      const resultsContainer = document.getElementById('results');
+      resultsContainer.innerHTML = 'Loading...';
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: formData
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+        const data = await response.json();
+        if (!data.users || data.users.length === 0) {
+          resultsContainer.innerHTML = '<p>No users found.</p>';
+          return;
+        }
+
+        resultsContainer.innerHTML = '';
+        data.users.forEach(user => {
+          const div = document.createElement('div');
+          div.className = 'user';
+          div.innerHTML = `
+            <a href="userCourses.html?userId=${user.id}&userName=${user.fullname}" style="text-decoration:none; color:inherit;">
+            <h4>${user.fullname}</h4>
+            <p><strong>Email:</strong> ${user.email}</p>
+            <p><strong>Username:</strong> ${user.username}</p>
+            <p><strong>ID:</strong> ${user.id}</p>
+          `;
+          resultsContainer.appendChild(div);
+        });
+
+      } catch (error) {
+        console.error('Fetch error:', error);
+        resultsContainer.innerHTML = '<p class="error">Error fetching user data\n ${error}.</p>';
+      }
+    }
+  </script>
+</body>
+</html>
